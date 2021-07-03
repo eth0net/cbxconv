@@ -15,9 +15,10 @@ import (
 
 func main() {
 	source := filepath.Join("testdata", "comic.cbt")
-	r, err := OpenCBTReader(source)
+
+	fi, err := os.Open(source)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to open input file: %s", err)
 	}
 
 	path := filepath.Clean("testdata")
@@ -29,10 +30,13 @@ func main() {
 	trgBase := trgName + trgExt
 	target := filepath.Join(path, trgBase)
 
-	w, err := OpenCBTWriter(target)
+	fo, err := os.Create(target)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to create output file: %s", err)
 	}
+
+	r := NewCBTReader(fi)
+	w := NewCBTWriter(fo)
 
 	for {
 		info, err := r.Next()
@@ -73,32 +77,17 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if err := r.Close(); err != nil {
+	if err := fo.Close(); err != nil {
 		log.Fatalln(err)
 	}
 }
 
 type CBTReader struct {
-	f *os.File
 	r *tar.Reader
 }
 
-func OpenCBTReader(path string) (*CBTReader, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open input file: %s", err)
-	}
-	return &CBTReader{f: f, r: tar.NewReader(f)}, nil
-}
-
-func (c *CBTReader) Close() error {
-	if c.f == nil {
-		return fmt.Errorf("nothing to close")
-	}
-	if err := c.f.Close(); err != nil {
-		return fmt.Errorf("failed to close: %s", err)
-	}
-	return nil
+func NewCBTReader(r io.Reader) *CBTReader {
+	return &CBTReader{r: tar.NewReader(r)}
 }
 
 func (c *CBTReader) Next() (*FileInfo, error) {
@@ -131,31 +120,19 @@ func (c *CBTReader) Read(p []byte) (int, error) {
 }
 
 type CBTWriter struct {
-	f *os.File
 	w *tar.Writer
 }
 
-func OpenCBTWriter(path string) (*CBTWriter, error) {
-	f, err := os.Create(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create file: %s", err)
-	}
-	return &CBTWriter{f: f, w: tar.NewWriter(f)}, nil
+func NewCBTWriter(w io.Writer) *CBTWriter {
+	return &CBTWriter{w: tar.NewWriter(w)}
 }
 
 func (c *CBTWriter) Close() error {
-	if c.f == nil && c.w == nil {
+	if c.w == nil {
 		return fmt.Errorf("nothing to close")
 	}
-	if c.w != nil {
-		if err := c.w.Close(); err != nil {
-			return fmt.Errorf("failed to close writer: %s", err)
-		}
-	}
-	if c.f != nil {
-		if err := c.f.Close(); err != nil {
-			return fmt.Errorf("failed to close file: %s", err)
-		}
+	if err := c.w.Close(); err != nil {
+		return fmt.Errorf("failed to close writer: %s", err)
 	}
 	return nil
 }

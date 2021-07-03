@@ -15,9 +15,13 @@ import (
 
 func main() {
 	source := filepath.Join("testdata", "comic.cbz")
-	r, err := OpenCBZReader(source)
+	fi, err := os.Open(source)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalf("failed to open input archive: %s\n", err)
+	}
+	ii, err := fi.Stat()
+	if err != nil {
+		log.Fatalf("failed to stat input archive: %s\n", err)
 	}
 
 	path := filepath.Clean("testdata")
@@ -29,9 +33,18 @@ func main() {
 	trgBase := trgName + trgExt
 	target := filepath.Join(path, trgBase)
 
-	w, err := OpenCBZWriter(target)
+	fo, err := os.Create(target)
 	if err != nil {
 		log.Fatalf("failed to create file: %s\n", err)
+	}
+
+	r, err := NewCBZReader(fi, ii.Size())
+	if err != nil {
+		log.Fatalln("failed to create archive reader: %s\n", err)
+	}
+	w, err := NewCBZWriter(fo)
+	if err != nil {
+		log.Fatalf("failed to create archive writer: %s\n", err)
 	}
 
 	for {
@@ -68,44 +81,31 @@ func main() {
 		}
 	}
 
-	if err := w.Close(); err != nil {
+	if err = w.Close(); err != nil {
+		log.Fatalf("failed to close output archive: %s\n", err)
+	}
+
+	if err = fo.Close(); err != nil {
 		log.Fatalf("failed to close output file: %s\n", err)
 	}
 
-	if err = r.Close(); err != nil {
+	if err = fi.Close(); err != nil {
 		log.Fatalln(err)
 	}
 }
 
 type CBZReader struct {
-	r  *zip.ReadCloser
+	r  *zip.Reader
 	zr io.ReadCloser
 	i  int
 }
 
-func OpenCBZReader(path string) (*CBZReader, error) {
-	r, err := zip.OpenReader(path)
+func NewCBZReader(r io.ReaderAt, size int64) (*CBZReader, error) {
+	zr, err := zip.NewReader(r, size)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open input file: %s", err)
+		return nil, err
 	}
-	return &CBZReader{r: r}, nil
-}
-
-func (c *CBZReader) Close() error {
-	if c.zr == nil && c.r == nil {
-		return fmt.Errorf("nothing to close")
-	}
-	if c.zr != nil {
-		if err := c.zr.Close(); err != nil {
-			return fmt.Errorf("failed to close file: %s", err)
-		}
-	}
-	if c.r != nil {
-		if err := c.r.Close(); err != nil {
-			return fmt.Errorf("failed to close zip: %s", err)
-		}
-	}
-	return nil
+	return &CBZReader{r: zr}, nil
 }
 
 func (c *CBZReader) Next() (fi *FileInfo, err error) {
@@ -146,32 +146,20 @@ func (c *CBZReader) Read(p []byte) (int, error) {
 }
 
 type CBZWriter struct {
-	f  *os.File
 	w  *zip.Writer
 	zw io.Writer
 }
 
-func OpenCBZWriter(path string) (*CBZWriter, error) {
-	f, err := os.Create(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create file: %s", err)
-	}
-	return &CBZWriter{f: f, w: zip.NewWriter(f)}, nil
+func NewCBZWriter(w io.Writer) (*CBZWriter, error) {
+	return &CBZWriter{w: zip.NewWriter(w)}, nil
 }
 
 func (c *CBZWriter) Close() error {
-	if c.f == nil && c.w == nil {
+	if c.w == nil {
 		return fmt.Errorf("nothing to close")
 	}
-	if c.w != nil {
-		if err := c.w.Close(); err != nil {
-			return fmt.Errorf("failed to close writer: %s", err)
-		}
-	}
-	if c.f != nil {
-		if err := c.f.Close(); err != nil {
-			return fmt.Errorf("failed to close file: %s", err)
-		}
+	if err := c.w.Close(); err != nil {
+		return fmt.Errorf("failed to close writer: %s", err)
 	}
 	return nil
 }
