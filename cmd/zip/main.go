@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"github.com/eth0net/cbxconv"
 	"image/jpeg"
 	"io"
 	"log"
@@ -71,7 +72,7 @@ func main() {
 		trgExt := ".jpg"
 		name := strings.TrimSuffix(info.Name, srcExt) + trgExt
 
-		newInfo := &FileInfo{
+		newInfo := &cbxconv.FileInfo{
 			Name:    name,
 			ModTime: time.Now(),
 		}
@@ -108,7 +109,7 @@ func NewCBZReader(r io.ReaderAt, size int64) (*CBZReader, error) {
 	return &CBZReader{r: zr}, nil
 }
 
-func (c *CBZReader) Next() (fi *FileInfo, err error) {
+func (c *CBZReader) Next() (fi *cbxconv.FileInfo, err error) {
 	if c.r == nil {
 		return nil, fmt.Errorf("no reader")
 	}
@@ -127,7 +128,7 @@ func (c *CBZReader) Next() (fi *FileInfo, err error) {
 		return nil, fmt.Errorf("failed to open next file: %s", err)
 	}
 	c.i++
-	fi = &FileInfo{
+	fi = &cbxconv.FileInfo{
 		Name:    f.Name,
 		ModTime: f.Modified,
 	}
@@ -175,7 +176,7 @@ func (c *CBZWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func (c *CBZWriter) WriteFileInfo(i *FileInfo) error {
+func (c *CBZWriter) WriteFileInfo(i *cbxconv.FileInfo) error {
 	if c.w == nil {
 		return fmt.Errorf("no writer")
 	}
@@ -191,16 +192,11 @@ func (c *CBZWriter) WriteFileInfo(i *FileInfo) error {
 	return nil
 }
 
-func (c *CBZWriter) WriteWithFileInfo(i *FileInfo, p []byte) (int, error) {
+func (c *CBZWriter) WriteWithFileInfo(i *cbxconv.FileInfo, p []byte) (int, error) {
 	err := c.WriteFileInfo(i)
 	if err != nil {
 		return 0, err
 	}
 	n, err := c.Write(p)
 	return n, err
-}
-
-type FileInfo struct {
-	Name    string
-	ModTime time.Time
 }

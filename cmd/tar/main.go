@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"fmt"
+	"github.com/eth0net/cbxconv"
 	"image/jpeg"
 	"io"
 	"log"
@@ -14,7 +15,7 @@ import (
 )
 
 func main() {
-	source := filepath.Join("testdata", "comic.cbt")
+	source := filepath.Join("testdata", "128.cbt")
 
 	fi, err := os.Open(source)
 	if err != nil {
@@ -62,7 +63,7 @@ func main() {
 		trgExt := ".jpg"
 		name := strings.TrimSuffix(info.Name, srcExt) + trgExt
 
-		newInfo := &FileInfo{
+		newInfo := &cbxconv.FileInfo{
 			Name:    name,
 			ModTime: time.Now(),
 			Size:    int64(buf.Len()),
@@ -90,7 +91,7 @@ func NewCBTReader(r io.Reader) *CBTReader {
 	return &CBTReader{r: tar.NewReader(r)}
 }
 
-func (c *CBTReader) Next() (*FileInfo, error) {
+func (c *CBTReader) Next() (*cbxconv.FileInfo, error) {
 	if c.r == nil {
 		return nil, fmt.Errorf("no reader")
 	}
@@ -101,7 +102,7 @@ func (c *CBTReader) Next() (*FileInfo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get next: %s", err)
 	}
-	fi := &FileInfo{
+	fi := &cbxconv.FileInfo{
 		Name:    hdr.Name,
 		ModTime: hdr.ModTime,
 	}
@@ -112,11 +113,7 @@ func (c *CBTReader) Read(p []byte) (int, error) {
 	if c.r == nil {
 		return 0, fmt.Errorf("no reader")
 	}
-	n, err := c.r.Read(p)
-	if err != nil {
-		return n, fmt.Errorf("failed to read: %s", err)
-	}
-	return n, err
+	return c.r.Read(p)
 }
 
 type CBTWriter struct {
@@ -148,7 +145,7 @@ func (c *CBTWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func (c *CBTWriter) WriteFileInfo(i *FileInfo) error {
+func (c *CBTWriter) WriteFileInfo(i *cbxconv.FileInfo) error {
 	if c.w == nil {
 		return fmt.Errorf("no writer")
 	}
@@ -165,15 +162,9 @@ func (c *CBTWriter) WriteFileInfo(i *FileInfo) error {
 	return nil
 }
 
-func (c *CBTWriter) WriteWithFileInfo(i *FileInfo, p []byte) (int, error) {
+func (c *CBTWriter) WriteWithFileInfo(i *cbxconv.FileInfo, p []byte) (int, error) {
 	if err := c.WriteFileInfo(i); err != nil {
 		return 0, err
 	}
 	return c.Write(p)
-}
-
-type FileInfo struct {
-	Name    string
-	ModTime time.Time
-	Size    int64
 }
