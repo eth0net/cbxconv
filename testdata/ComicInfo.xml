@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ComicInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Series>CBXConv Test</Series>
+  <Number>002</Number>
+  <Web>https://github.com/eth0net/cbxconv/blob/main/testdata/multi.info.webp.cbt</Web>
+  <Summary>A multi page test file with WEBP pages in a TAR archive.</Summary>
+  <Notes></Notes>
+  <Publisher>eth0net</Publisher>
+  <Genre></Genre>
+  <PageCount>2</PageCount>
+  <LanguageISO>en</LanguageISO>
+  <ScanInformation></ScanInformation>
+</ComicInfo>
