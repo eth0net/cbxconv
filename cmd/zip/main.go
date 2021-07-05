@@ -41,7 +41,7 @@ func main() {
 
 	r, err := NewCBZReader(fi, ii.Size())
 	if err != nil {
-		log.Fatalln("failed to create archive reader: %s\n", err)
+		log.Fatalf("failed to create archive reader: %s\n", err)
 	}
 	w, err := NewCBZWriter(fo)
 	if err != nil {
