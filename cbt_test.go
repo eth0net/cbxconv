@@ -189,5 +189,21 @@ func TestCBTReader_Read(t *testing.T) {
 }
 
 func TestCBTReader_Next(t *testing.T) {
+	t.Parallel()
 
+	t.Run("nil reader", func(t *testing.T) {
+		r := CBTReader{}
+		want := fmt.Errorf("nil reader")
+		if _, err := r.Next(); !reflect.DeepEqual(want, err) {
+			t.Errorf("wanted err == %q, got %q", want, err)
+		}
+	})
+
+	t.Run("EOF", func(t *testing.T) {
+		r := NewCBTReader(&bytes.Buffer{})
+		want := io.EOF
+		if _, err := r.Next(); !reflect.DeepEqual(want, err) {
+			t.Errorf("wanted err == %q, got %q", want, err)
+		}
+	})
 }

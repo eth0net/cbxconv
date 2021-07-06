@@ -23,7 +23,7 @@ func (c *CBTReader) Read(p []byte) (int, error) {
 
 func (c *CBTReader) Next() (*FileInfo, error) {
 	if c.r == nil {
-		return nil, fmt.Errorf("no reader")
+		return nil, fmt.Errorf("nil reader")
 	}
 	hdr, err := c.r.Next()
 	if err == io.EOF {
