@@ -38,3 +38,56 @@ func (c *CBTReader) Next() (*FileInfo, error) {
 	}
 	return fi, nil
 }
+
+type CBTWriter struct {
+	w *tar.Writer
+}
+
+func NewCBTWriter(w io.Writer) *CBTWriter {
+	return &CBTWriter{w: tar.NewWriter(w)}
+}
+
+func (c *CBTWriter) Close() error {
+	if c.w == nil {
+		return fmt.Errorf("nothing to close")
+	}
+	if err := c.w.Close(); err != nil {
+		return fmt.Errorf("failed to close writer: %s", err)
+	}
+	return nil
+}
+
+func (c *CBTWriter) Write(p []byte) (int, error) {
+	if c.w == nil {
+		return 0, fmt.Errorf("no writer")
+	}
+	n, err := c.w.Write(p)
+	if err != nil {
+		err = fmt.Errorf("failed to write bytes: %s", err)
+	}
+	return n, err
+}
+
+func (c *CBTWriter) WriteFileInfo(i *FileInfo) error {
+	if c.w == nil {
+		return fmt.Errorf("no writer")
+	}
+	hdr := &tar.Header{
+		Name:    i.Name,
+		Size:    i.Size,
+		Mode:    0600,
+		ModTime: i.ModTime,
+	}
+	err := c.w.WriteHeader(hdr)
+	if err != nil {
+		return fmt.Errorf("failed to write header: %s", err)
+	}
+	return nil
+}
+
+func (c *CBTWriter) WriteWithFileInfo(i *FileInfo, p []byte) (int, error) {
+	if err := c.WriteFileInfo(i); err != nil {
+		return 0, err
+	}
+	return c.Write(p)
+}
